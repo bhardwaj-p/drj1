@@ -1,19 +1,3 @@
-# -*- coding:utf8 -*-
-# !/usr/bin/env python
-# Copyright 2017 Google Inc. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 from __future__ import print_function
 from future.standard_library import install_aliases
 install_aliases()
@@ -34,14 +18,8 @@ import time
 from flask import Flask
 from flask import request
 from flask import make_response
-from fuzzywuzzy import fuzz
-from fuzzywuzzy import process
-from song_data import *
-from rq import Queue
-from worker import conn
 
 from utils import next_event
-
 
 
 maintain_history = []
@@ -54,77 +32,18 @@ app = Flask(__name__)
 
 
 
-#DEEPAK CODE FOR EVENT
-CLIENT_ACCESS_TOKEN = '9ded4fd3df4b42b7b678b928add51dbf'
-##DEEPAK
-
-
-
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    req = request.get_json(silent=True, force=True)
-    q = Queue(connection=conn)
-    print("Request:")
-#    print(json.dumps(req, indent=4))
-    res = processRequest(req)
+    req = urlopen('http://ec2-54-197-17-247.compute-1.amazonaws.com').read()
+    print("done req")
+    res = makeWebhookResult(req)
     res = json.dumps(res, indent=4)
     # print(res)
     r = make_response(res)
     r.headers['Content-Type'] = 'application/json'
     #if not session_id:
-    print("session id1")
-    session_id=req.get("sessionId")
-    print("Session id2",session_id)
-    #next_req = q.enqueue(requests.post('https://drj1.herokuapp.com/next', data = {'session_id1':session_id}))
-    #if "nextevent" not in str(req.get("result").get("resolvedQuery")):
-        #next_req = q.enqueue(next_event,session_id)
-    #result = q.enqueue(count_words_at_url, 'http://heroku.com')
-    #time.sleep(1)
-    print("queue working")
     return r
 
-
-
-def processRequest(req):
-    print("processing req")
-    input_data = str(req)
-    print(input_data)
-    input_data = str(req.get("result").get("resolvedQuery"))
-#    input_data = str(req.get("queryResult").get("queryText"))
-    input_data = re.sub('[sS]ong', '', input_data)
-    input_data = re.sub('^[pP]lay', '', input_data)
-    print("processing req 2")
-    print(input_data)
-    choice_val = process.extract(input_data, choices, scorer=fuzz.partial_ratio, limit=1)
-    print("processing req 3")
-    print(str(choice_val))
-    choice_song_path = map_choices[choice_val[0][0]]
-    choice_song_path1 = map_choices["Tera Mera Pyar Amar"]
-    print("processing req 4")
-    print(str(choice_song_path))
-    #data = "<speak> <audio src=\"" + choice_song_path + "\"> didn't get your MP3 audio file </audio> </speak>"
-    
-    ###CODE FOR PLAYLIST####
-    song_num=0
-    playlist_songs_paths=[]
-    for key in map_choices:
-        if (song_num < max_song_num):
-            song_num = song_num+1
-            playlist_songs_paths.append(map_choices[key])
-        
-    data="<speak>"
-    for song_path in playlist_songs_paths:
-        data = data + "<audio src=\"" + song_path + "\"> didn't get your MP3 audio file </audio> <break time=\"2s\"/> "
-    data= data + "</speak>"
-    ############################################
-    
-    ##CODE FOR SINGLE SONG###########################################
-    #data = "<speak> <audio src=\"" + choice_song_path + "\"> didn't get your MP3 audio file </audio> \
-    #    <break time=\"3s\"/> \
-    #    <audio src=\"" + choice_song_path1 + "\"> didn't get your MP3 audio file </audio> </speak>"
-    ########################################
-    res = makeWebhookResult(data)
-    return res
 
 
 def makeWebhookResult(data):
@@ -132,10 +51,7 @@ def makeWebhookResult(data):
     print("Response: " + data)
     return {
         "speech": data,
-        "displayText": "Got the response",
-        # "data": data,
-        # "contextOut": [],
-        "source": "apiai-weather-webhook-sample"
+        "displayText": "Got the response"
     }
 
 if __name__ == '__main__':
